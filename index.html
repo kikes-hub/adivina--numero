@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Adivina el Número</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
+      color: #333;
+    }
+    #info, #premios {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    #tablero {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      max-width: 300px;
+      margin: 20px auto;
+    }
+    button {
+      padding: 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      background-color: #888;
+    }
+    #popup {
+      display: none;
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      color: white;
+      padding: 25px 40px;
+      border-radius: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 0 30px rgba(0,0,0,0.4);
+      z-index: 1001;
+    }
+    #recarga {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle at top left, #00f2fe, #4facfe, #5efce8);
+      border-radius: 20px;
+      padding: 30px;
+      color: white;
+      font-size: 18px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.3);
+      z-index: 1000;
+      text-align: center;
+      border: 4px solid white;
+      animation: glow 3s infinite alternate;
+    }
+    @keyframes glow {
+      0% { box-shadow: 0 0 10px #00f2fe; }
+      100% { box-shadow: 0 0 40px #4facfe; }
+    }
+    @keyframes flotar {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-10px); }
+    }
+    .emoji {
+      font-size: 64px;
+      margin-bottom: 10px;
+      animation: flotar 2s infinite alternate;
+    }
+  </style>
+</head>
+<body>
+  <h1>Adivina el Número</h1>
+  <div>
+    Valor de la apuesta:
+    <input id="valorApuesta" type="number" min="100" step="100" value="400" onchange="actualizarInfo()" />
+  </div>
+  <div>
+    Multiplicador:
+    <select id="multiplicador" onchange="actualizarInfo()">
+      <option value="2">x2</option>
+      <option value="3">x3</option>
+      <option value="4">x4</option>
+      <option value="5">x5</option>
+    </select>
+  </div>
+  <div id="info">
+    Créditos: <span id="creditos">2000</span> | Intentos: <span id="intentos">5</span>
+  </div>
+  <div id="premios">
+    Premios: <span id="contadorPremios">0</span>
+  </div>
+  <div id="tablero"></div>
+  <div id="popup">¡Perdiste!</div>
+  <div id="recarga">
+    <div class="emoji">👧✨</div>
+    <p style="font-size: 20px; font-weight: bold;">¡Recarga lista para ti!</p>
+    <p style="font-size: 16px;">¡Vamos, tú puedes seguir ganando!</p>
+    <button onclick="reproducirVozYVolver()" style="margin-top: 15px; padding: 10px 20px; font-size: 16px; background-color: green; color: white; border: none; border-radius: 10px;">Volver al juego</button>
+    <button onclick="salirDelJuego()" style="margin-top: 15px; padding: 10px 20px; font-size: 16px; background-color: red; color: white; border: none; border-radius: 10px;">Salir del juego</button>
+    <audio id="musicaRecarga" autoplay loop>
+      <source src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="vozPersonaje">
+      <source src="https://cdn.pixabay.com/download/audio/2023/03/29/audio_21b3c401ab.mp3?filename=hola-soy-tu-guia-voz-femenina-142182.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+  <script>
+    let numeroGanador, creditos = 2000, intentos = 5, recargas = 0, premios = 0, multiplicador = 2, valorApuesta = 400;
+    function actualizarInfo() {
+      multiplicador = parseInt(document.getElementById("multiplicador").value);
+      valorApuesta = parseInt(document.getElementById("valorApuesta").value);
+      document.getElementById("creditos").textContent = creditos;
+      document.getElementById("intentos").textContent = intentos;
+      document.getElementById("contadorPremios").textContent = premios;
+    }
+    function iniciarJuego() {
+      const tablero = document.getElementById("tablero");
+      tablero.innerHTML = '';
+      document.getElementById("popup").style.display = "none";
+      numeroGanador = Math.floor(Math.random() * 50) + 1;
+      for (let i = 1; i <= 50; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.style.backgroundColor = getRandomColor();
+        btn.onclick = () => verificarNumero(i);
+        tablero.appendChild(btn);
+      }
+      actualizarInfo();
+    }
+    function verificarNumero(numero) {
+      if (creditos <= 0 || intentos <= 0) {
+        document.getElementById("recarga").style.display = "block";
+        return;
+      }
+      intentos--;
+      if (numero === numeroGanador) {
+        const ganancia = valorApuesta * multiplicador;
+        creditos += ganancia;
+        alert("¡Ganaste! +" + ganancia + " créditos.");
+      } else {
+        creditos -= valorApuesta;
+        const popup = document.getElementById("popup");
+        popup.style.display = "block";
+        setTimeout(() => popup.style.display = "none", 2000);
+        if (creditos <= 0) {
+          creditos = 0;
+          setTimeout(() => {
+            document.getElementById("recarga").style.display = "block";
+          }, 1000);
+        }
+      }
+      actualizarInfo();
+    }
+    function recargar(valor) {
+      creditos += valor;
+      intentos = 5;
+      recargas++;
+      document.getElementById("recarga").style.display = "none";
+      if (recargas === 3) {
+        creditos += 2000;
+        premios++;
+      }
+      iniciarJuego();
+    }
+    function reproducirVozYVolver() {
+      const voz = document.getElementById("vozPersonaje");
+      if (voz) {
+        voz.play().then(() => {
+          setTimeout(() => location.reload(), 2500);
+        }).catch(() => {
+          location.reload();
+        });
+      } else {
+        location.reload();
+      }
+    }
+    function salirDelJuego() {
+      document.body.innerHTML = "<h1>Gracias por jugar</h1><p>Recarga la página para volver a empezar.</p>";
+      const musica = document.getElementById("musicaRecarga");
+      const voz = document.getElementById("vozPersonaje");
+      if (musica) musica.pause();
+      if (voz) voz.pause();
+    }
+    function getRandomColor() {
+      const r = Math.floor(Math.random() * 200 + 30);
+      const g = Math.floor(Math.random() * 200 + 30);
+      const b = Math.floor(Math.random() * 200 + 30);
+      return `rgb(${r},${g},${b})`;
+    }
+    window.onload = iniciarJuego;
+  </script>
+</body>
+</html>
